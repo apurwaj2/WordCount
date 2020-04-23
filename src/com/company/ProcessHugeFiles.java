@@ -6,17 +6,16 @@ import java.util.concurrent.*;
 
 public class ProcessHugeFiles {
 
-    private static final int THREAD_COUNT = 8;
+    private static final int THREAD_COUNT = 4;
     private static final String EOF = "EOF";
-
+    
     public static void main(String[] args) throws IOException, InterruptedException {
         long startTime = System.nanoTime();
         String file_name = "/home/heisenberg/Downloads/400M";
         int K = 25;
 
         /* Function called for reading and processing a file */
-        List list = topKwords(file_name, K);
-        System.out.println(list);
+        topKwords(file_name, K);
 
         /* Displaying the time taken for execution */
         long endTime = System.nanoTime();
@@ -25,7 +24,7 @@ public class ProcessHugeFiles {
 
     }
 
-    public static List topKwords(String file_name, int K) throws IOException, InterruptedException {
+    public static void topKwords(String file_name, int K) throws IOException, InterruptedException {
 
         Map<String, Integer> map = new ConcurrentHashMap<String, Integer>();
         BlockingQueue<String> queue = new LinkedBlockingDeque<>();
@@ -70,22 +69,23 @@ public class ProcessHugeFiles {
         es.shutdown();
         //  es.awaitTermination(5, TimeUnit.SECONDS);
 
-        List<String> ans = new ArrayList();
+        int m = 0;
+        List<String> res = new ArrayList<String>();
 
-        PriorityQueue<String> heap;
-        heap = new PriorityQueue<String>(
-                (w1, w2) -> map.get(w1).equals(map.get(w2)) ?
-                        w2.compareTo(w1) : map.get(w1) - map.get(w2));
-
-        for (String word : map.keySet()) {
-            heap.offer(word);
-            if (heap.size() > K) heap.poll();
+        Object[] a = map.entrySet().toArray();
+        Arrays.sort(a, new Comparator() {
+            public int compare(Object o1, Object o2) {
+                return ((Map.Entry<String, Integer>) o2).getValue()
+                        .compareTo(((Map.Entry<String, Integer>) o1).getValue());
+            }
+        });
+        for (Object e : a) {
+            res.add(((Map.Entry<String, Integer>) e).getKey());
+            if(m++ > K)
+                break;
         }
 
-        while (!heap.isEmpty()) ans.add(heap.poll());
-        Collections.reverse(ans);
-
-        return ans;
+        System.out.println(res);
     }
 
     private static class Task implements Callable<Integer> {
