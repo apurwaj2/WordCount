@@ -6,12 +6,11 @@ import java.util.concurrent.*;
 
 public class ProcessHugeFiles {
 
-    private static final int THREAD_COUNT = 4;
-    private static final String EOF = "EOF";
-    
+    private static final int THREAD_COUNT = 12;
+
     public static void main(String[] args) throws IOException, InterruptedException {
         long startTime = System.nanoTime();
-        String file_name = "/home/heisenberg/Downloads/400M";
+        String file_name = "/home/heisenberg/Downloads/8G";
         int K = 25;
 
         /* Function called for reading and processing a file */
@@ -56,6 +55,7 @@ public class ProcessHugeFiles {
         for (int i = 0; i < THREAD_COUNT; i++) {
             Task taskInstance = new Task(map, queue);
             taskList.add(taskInstance);
+            // Future<Integer> result = es.submit(taskInstance);
         }
 
         List<Future<Integer>> result = null;
@@ -67,7 +67,7 @@ public class ProcessHugeFiles {
         }
 
         es.shutdown();
-        //  es.awaitTermination(5, TimeUnit.SECONDS);
+        es.awaitTermination(5, TimeUnit.SECONDS);
 
         int m = 0;
         List<String> res = new ArrayList<String>();
@@ -107,11 +107,12 @@ public class ProcessHugeFiles {
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+
                 String[] words = line.split("\\s+");
 
                 for (String word : words) {
                     if (!word.isBlank()) {
-                        word.replaceAll("[^a-zA-Z0-9]+", "");
+                        // word.replaceAll("[^a-zA-Z0-9]+", "");
                         if (!map.containsKey(word)) {
                             map.putIfAbsent(word, 1);
                         } else {
