@@ -10,11 +10,12 @@ public class ProcessHugeFiles {
 
     public static void main(String[] args) throws IOException, InterruptedException {
         long startTime = System.nanoTime();
-        String file_name = "/home/heisenberg/Downloads/8G";
+        String file_name = "/home/heisenberg/Downloads/32G";
         int K = 25;
 
         /* Function called for reading and processing a file */
-        topKwords(file_name, K);
+        List list = topKwords(file_name, K);
+        System.out.println(list);
 
         /* Displaying the time taken for execution */
         long endTime = System.nanoTime();
@@ -23,25 +24,32 @@ public class ProcessHugeFiles {
 
     }
 
-    public static void topKwords(String file_name, int K) throws IOException, InterruptedException {
+    public static List topKwords(String file_name, int K) throws IOException, InterruptedException {
 
         Map<String, Integer> map = new ConcurrentHashMap<String, Integer>();
-        BlockingQueue<String> queue = new LinkedBlockingDeque<>();
+        BlockingQueue<String> queue = new LinkedBlockingDeque<>(THREAD_COUNT * 2);
 
         new Thread() {
             @Override
             public void run() {
                 int i = 0;
+                Scanner sc = null;
                 try {
                     /* Reading file initialization */
-                    String line = null;
-                    BufferedReader br = new BufferedReader(new FileReader(file_name));
-                    while ((line = br.readLine()) != null) {
-                        queue.put(line);
+                    sc = new Scanner(new FileInputStream(file_name), "UTF-8");
+                    while (sc.hasNextLine()) {
+                        queue.put(sc.nextLine());
                         i++;
                     }
                 } catch (IOException | InterruptedException e) {
                     e.printStackTrace();
+                }
+                if (sc.ioException() != null) {
+                    try {
+                        throw sc.ioException();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 }
                 System.out.println("Value of i " + i);
             }
@@ -69,23 +77,22 @@ public class ProcessHugeFiles {
         es.shutdown();
         es.awaitTermination(5, TimeUnit.SECONDS);
 
-        int m = 0;
-        List<String> res = new ArrayList<String>();
+        List<String> ans = new ArrayList<String>();
 
-        Object[] a = map.entrySet().toArray();
-        Arrays.sort(a, new Comparator() {
-            public int compare(Object o1, Object o2) {
-                return ((Map.Entry<String, Integer>) o2).getValue()
-                        .compareTo(((Map.Entry<String, Integer>) o1).getValue());
-            }
-        });
-        for (Object e : a) {
-            res.add(((Map.Entry<String, Integer>) e).getKey());
-            if(m++ > K)
-                break;
+        PriorityQueue<String> heap;
+        heap = new PriorityQueue<String>(
+                (w1, w2) -> map.get(w1).equals(map.get(w2)) ?
+                        w2.compareTo(w1) : map.get(w1) - map.get(w2));
+
+        for (String word : map.keySet()) {
+            heap.offer(word);
+            if (heap.size() > K) heap.poll();
         }
 
-        System.out.println(res);
+        while (!heap.isEmpty()) ans.add(heap.poll());
+        Collections.reverse(ans);
+
+        return ans;
     }
 
     private static class Task implements Callable<Integer> {
@@ -112,7 +119,7 @@ public class ProcessHugeFiles {
 
                 for (String word : words) {
                     if (!word.isBlank()) {
-                        // word.replaceAll("[^a-zA-Z0-9]+", "");
+                        word =  word.replaceAll("[^a-zA-Z0-9]+", "");
                         if (!map.containsKey(word)) {
                             map.putIfAbsent(word, 1);
                         } else {
