@@ -6,12 +6,12 @@ import java.util.concurrent.*;
 
 public class ProcessHugeFiles {
 
-    private static final int THREAD_COUNT = 12;
+    private static final int THREAD_COUNT = 8;
 
     public static void main(String[] args) throws IOException, InterruptedException {
         long startTime = System.nanoTime();
-        String file_name = "/home/heisenberg/Downloads/32G";
-        int K = 25;
+        String file_name = "/home/heisenberg/Downloads/8G";
+        int K = 5;
 
         /* Function called for reading and processing a file */
         List list = topKwords(file_name, K);
@@ -33,30 +33,22 @@ public class ProcessHugeFiles {
             @Override
             public void run() {
                 int i = 0;
-                Scanner sc = null;
                 try {
                     /* Reading file initialization */
-                    sc = new Scanner(new FileInputStream(file_name), "UTF-8");
-                    while (sc.hasNextLine()) {
-                        queue.put(sc.nextLine());
-                        i++;
+                    String line = null;
+                    BufferedReader br = new BufferedReader(new FileReader(file_name));
+                    while((line = br.readLine()) != null) {
+                        queue.put(line);
                     }
                 } catch (IOException | InterruptedException e) {
                     e.printStackTrace();
-                }
-                if (sc.ioException() != null) {
-                    try {
-                        throw sc.ioException();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
                 }
                 System.out.println("Value of i " + i);
             }
         }.start();
 
         // Wait for the thread to start writing into the queue
-        Thread.sleep(100);
+        Thread.sleep(10);
 
         ExecutorService es = Executors.newFixedThreadPool(THREAD_COUNT);
         List<Task> taskList = new ArrayList<>();
@@ -75,7 +67,7 @@ public class ProcessHugeFiles {
         }
 
         es.shutdown();
-        es.awaitTermination(5, TimeUnit.SECONDS);
+        es.awaitTermination(1, TimeUnit.SECONDS);
 
         List<String> ans = new ArrayList<String>();
 
